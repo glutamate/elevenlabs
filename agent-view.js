@@ -126,8 +126,18 @@ const run =
     if (!action) throw new Error(`Action not found: ${action_id}`);
     let dynvs = "";
     if (dynamic_prompt) {
-      const { systemPrompt } =
-        await getState().functions.inspect_agent.run(action);
+      let triggering_row;
+      if (table_id) {
+        const table = Table.findOne(table_id);
+        const pk = table?.pk_name;
+        if (table && state[pk])
+          triggering_row = await table.getRow({ [pk]: state[pk] });
+      }
+      const { systemPrompt } = await getState().functions.inspect_agent.run(
+        action,
+        req.user,
+        triggering_row,
+      );
       dynvs = `dynamic-variables='{"sysprompt": ${JSON.stringify(systemPrompt).replaceAll("'", "\\'")}}'`;
     }
     return `<elevenlabs-convai 
