@@ -18,11 +18,15 @@ const configuration_workflow = (modcfg) => (req) =>
       const client = new ElevenLabsClient({
         apiKey: modcfg.api_key,
       });
-      const action = await Trigger.findOne({ id: ctx.action_id });
-
-      const { systemPrompt } =
-        await getState().functions.inspect_agent.run(action);
-      const prompt = systemPrompt;
+      let prompt;
+      if (ctx.dynamic_prompt) {
+        prompt = "{{sysprompt}}";
+      } else {
+        const action = await Trigger.findOne({ id: ctx.action_id });
+        const { systemPrompt } =
+          await getState().functions.inspect_agent.run(action);
+        prompt = systemPrompt;
+      }
       const conversationConfig = {
         agent: {
           firstMessage: ctx.first_message,
@@ -84,6 +88,13 @@ const configuration_workflow = (modcfg) => (req) =>
                 label: "First message",
                 type: "String",
               },
+              {
+                name: "dynamic_prompt",
+                label: "Dynamic prompt",
+                type: "Bool",
+                sublabel:
+                  "Set system prompt individually based on triggering row and/or user",
+              },
             ],
           });
         },
@@ -107,14 +118,23 @@ const run =
   async (
     table_id,
     viewname,
-    { action_id, agent_action, elevenlabs_agent_id },
+    { action_id, agent_action, elevenlabs_agent_id, dynamic_prompt },
     state,
     { res, req },
   ) => {
     const action = agent_action || (await Trigger.findOne({ id: action_id }));
     if (!action) throw new Error(`Action not found: ${action_id}`);
-
-    return `<elevenlabs-convai agent-id="${elevenlabs_agent_id}"></elevenlabs-convai>
+    let dynvs = "";
+    if (dynamic_prompt) {
+      const { systemPrompt } =
+        await getState().functions.inspect_agent.run(action);
+      dynvs = `dynamic-variables='{"sysprompt": ${JSON.stringify(systemPrompt).replaceAll("'", "\\'")}}'`;
+    }
+    return `<elevenlabs-convai 
+       agent-id="${elevenlabs_agent_id}"
+       ${dynvs}
+       >
+       </elevenlabs-convai>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 `;
   };
