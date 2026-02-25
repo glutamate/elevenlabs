@@ -10,19 +10,37 @@ const WorkflowRun = require("@saltcorn/data/models/workflow_run");
 const Workflow = require("@saltcorn/data/models/workflow");
 const { div, script, domReady, a, br, img } = require("@saltcorn/markup/tags");
 const { ElevenLabsClient } = require("@elevenlabs/elevenlabs-js");
+const { getState } = require("@saltcorn/data/db/state");
 
 const configuration_workflow = (modcfg) => (req) =>
   new Workflow({
     onDone: async (ctx) => {
+      const client = new ElevenLabsClient({
+        apiKey: modcfg.api_key,
+      });
+      const action = await Trigger.findOne({ id: ctx.action_id });
+
+      const { systemPrompt } =
+        await getState().functions.inspect_agent.run(action);
+      const prompt = systemPrompt;
+      const conversationConfig = {
+        agent: {
+          firstMessage: ctx.first_message,
+          prompt: {
+            prompt,
+          },
+        },
+      };
+
       if (!ctx.elevenlabs_agent_id) {
-        const client = new ElevenLabsClient({
-          apiKey: modcfg.api_key,
-        });
         const createres = await client.conversationalAi.agents.create({
-          conversationConfig: {},
+          conversationConfig,
         });
-        console.log({ createres });
         ctx.elevenlabs_agent_id = createres.agentId;
+      } else {
+        await client.conversationalAi.agents.update(ctx.elevenlabs_agent_id, {
+          conversationConfig,
+        });
       }
       return ctx;
     },
@@ -61,6 +79,11 @@ const configuration_workflow = (modcfg) => (req) =>
                 sublabel: "Leave blank to create a new agent",
                 type: "String",
               },
+              {
+                name: "first_message",
+                label: "First message",
+                type: "String",
+              },
             ],
           });
         },
@@ -84,25 +107,16 @@ const run =
   async (
     table_id,
     viewname,
-    {
-      action_id,
-      agent_action,
-      show_prev_runs,
-      prev_runs_closed,
-      placeholder,
-      explainer,
-      image_upload,
-      stream,
-      audio_recorder,
-      layout,
-    },
+    { action_id, agent_action, elevenlabs_agent_id },
     state,
     { res, req },
   ) => {
     const action = agent_action || (await Trigger.findOne({ id: action_id }));
     if (!action) throw new Error(`Action not found: ${action_id}`);
 
-    return "Agent view goes here";
+    return `<elevenlabs-convai agent-id="${elevenlabs_agent_id}"></elevenlabs-convai>
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+`;
   };
 
 module.exports = (modcfg) => ({
