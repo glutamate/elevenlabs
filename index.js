@@ -6,6 +6,7 @@ const FieldRepeat = require("@saltcorn/data/models/fieldrepeat");
 const Plugin = require("@saltcorn/data/models/plugin");
 const { domReady } = require("@saltcorn/markup/tags");
 const db = require("@saltcorn/data/db");
+const { ElevenLabsClient } = require("@elevenlabs/elevenlabs-js");
 
 const configuration_workflow = () =>
   new Workflow({
@@ -59,4 +60,5 @@ module.exports = {
   sc_plugin_api_version: 1,
   configuration_workflow,
   functions,
+  viewtemplates: (config)=>[require("./agent-view")(config)],
 };
