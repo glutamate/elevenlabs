@@ -29,7 +29,7 @@ const configuration_workflow = (modcfg) => (req) =>
       if (!ctx.tool_id_hash) ctx.tool_id_hash = {};
       const tool_ids = [];
       const baseurl = getState().getConfig("base_url", "/");
-      for (const tool of tools) {
+      for (const tool of tools||[]) {
         const hash = crypto
           .createHash("md5")
           .update(JSON.stringify(tool))
