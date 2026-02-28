@@ -47,8 +47,8 @@ const configuration_workflow = (modcfg) => (req) =>
               apiSchema: {
                 url: `${ensure_final_slash(baseurl)}view/${ctx.viewname}/toolcall?tool=${tool.function.name}`,
                 method: "POST",
-                pathParamsSchema: [],
-                queryParamsSchema: [],
+                //pathParamsSchema: {},
+                //queryParamsSchema: {},
                 /*requestBodySchema: {
                   id: "body",
                   type: "object",
@@ -69,7 +69,7 @@ const configuration_workflow = (modcfg) => (req) =>
                   required: false,
                   value_type: "llm_prompt",
                 },*/
-                requestHeaders: [],
+                //requestHeaders: [],
               },
             },
           });
